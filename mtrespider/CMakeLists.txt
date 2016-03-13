@@ -51,11 +51,20 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 ## Declare a cpp library
 add_library(pid-controller SHARED IMPORTED
-  /usr/local/lib/libpid-controller.so
+    /usr/local/lib/libpid-controller.so
 )
 set_target_properties(pid-controller PROPERTIES
     IMPORTED_LOCATION /usr/local/lib/libpid-controller.so
 )
+
+add_library (wiringPi SHARED IMPORTED
+    /usr/local/lib/libwiringPi.so
+)
+set_target_properties(wiringPi PROPERTIES
+    LINKER_LANGUAGE cpp
+    IMPORTED_LOCATION /usr/local/lib/libwiringPi.so
+)
+
 
 add_library(iir
     include/mtrespider/iir/Bessel.cpp
@@ -75,18 +84,20 @@ add_library(iir
 
 ## Declare a cpp executable
 add_executable(ferrosensor src/ferrosensor.cpp)
-add_executable(transducerlift src/transducerlift.cpp)
+add_executable(transducerarm src/transducerarm.cpp)
 
 ## Add cmake target dependencies of the executable/library
 add_dependencies(ferrosensor mtrespider_generate_messages_cpp)
-add_dependencies(transducerlift mtrespider_generate_messages_cpp)
+add_dependencies(transducerarm mtrespider_generate_messages_cpp)
 
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(ferrosensor
     ${catkin_LIBRARIES}
+    wiringPi
 )
-target_link_libraries(transducerlift
+target_link_libraries(transducerarm
     ${catkin_LIBRARIES}
     pid-controller
+    wiringPi
 )
