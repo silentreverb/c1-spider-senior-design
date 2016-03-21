@@ -17,14 +17,14 @@ int main(int argc, char **argv)
     
     //ROS node init and NodeHandle init
     ros::init(argc, argv, "ferrosensor");
-    ros::NodeHandle n;
+    ros::NodeHandle n = ros::NodeHandle("ferrosensor");
 
     // Publishers
-    ros::Publisher sensorValuePub = n.advertise<std_msgs::Int16>("/spider/ferrosensor/fsr_reading", 1);
+    ros::Publisher sensorValuePub = n.advertise<std_msgs::Int16>("fsr_reading", 1);
     std_msgs::Int16 sensorValueMsg;
     sensorValueMsg.data = 0;
     
-    ros::Publisher surfaceDetectedPub = n.advertise<std_msgs::Bool>("/spider/ferrosensor/detected", 1);
+    ros::Publisher surfaceDetectedPub = n.advertise<std_msgs::Bool>("detected", 1);
     std_msgs::Bool surfaceDetectedMsg;
     surfaceDetectedMsg.data = false;
     
