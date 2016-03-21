@@ -1,12 +1,12 @@
 // Includes
 #include "ros/ros.h"
+#include "std_msgs/Int16.h"
 #include "std_msgs/Bool.h"
 #include <wiringPi.h>
 #include <iostream>
 
 // Constants
-#define SENSOR_CONSTANT 1  // ADC value to force conversion factor
-#define FORCE_THRESH 512 // Force threshold indicating a ferromagnetic surface is present
+#define SENSOR_THRESH 512 // Force threshold indicating a ferromagnetic surface is present
 
 using namespace std;
 
@@ -20,9 +20,13 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
 
     // Publishers
-    ros::Publisher surfaceDetectedPub = n.advertise<std_msgs::Bool>("/mtrespider/ferrosensor/detected", 1);
-    std_msgs::Bool msg;
-    msg.data = true;
+    ros::Publisher sensorValuePub = n.advertise<std_msgs::Int16>("/spider/ferrosensor/fsr_reading", 1);
+    std_msgs::Int16 sensorValueMsg;
+    sensorValueMsg.data = 0;
+    
+    ros::Publisher surfaceDetectedPub = n.advertise<std_msgs::Bool>("/spider/ferrosensor/detected", 1);
+    std_msgs::Bool surfaceDetectedMsg;
+    surfaceDetectedMsg.data = false;
     
     // Read voltage at a 10 Hz rate
     ros::Rate loopRate(10);
@@ -30,20 +34,25 @@ int main(int argc, char **argv)
     while(ros::ok())
     {
         // Read voltage from force sensor and convert to measured force
-        int sensorValue = analogRead(25);
-        double magForce = SENSOR_CONSTANT * sensorValue;
+        int sensorValue = analogRead(0);
+        sensorValueMsg.data = sensorValue;
         
+        if(sensorValue != 0) {
+			ROS_INFO("FSR Reading: %d", sensorValue); 
+		}
+		
         // Check measured force against threshold value calculated by Raymond
-        if (magForce > FORCE_THRESH) {
-			msg.data = true; // Ferromagnetic surface detected
+        if (sensorValue > SENSOR_THRESH) {
+			surfaceDetectedMsg.data = true; // Ferromagnetic surface detected
 		}
 		else {
-			msg.data = false; // No ferromagnetic surface detected, alert operator on HMI
+			surfaceDetectedMsg.data = false; // No ferromagnetic surface detected, alert operator on HMI
 		}
 		
 		// Publish detection result to /mtrespider/ferrosensor/detected ROS topic
-        surfaceDetectedPub.publish(msg);
-
+        sensorValuePub.publish(sensorValueMsg);
+        surfaceDetectedPub.publish(surfaceDetectedMsg);
+		
 		// Sleep for 0.1 s
         ros::spinOnce();
         loopRate.sleep();

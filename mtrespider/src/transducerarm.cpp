@@ -43,8 +43,8 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
 
     // Subscribers
-    ros::Subscriber positionSetpointSub = n.subscribe("/mtrespider/transducerarm/position_setpoint",1, positionSetpointCallback);
-    ros::Subscriber forceSetpointSub = n.subscribe("/mtrespider/transducerarm/force_setpoint",1, forceSetpointCallback);
+    ros::Subscriber positionSetpointSub = n.subscribe("/spider/transducerarm/position_setpoint",1, positionSetpointCallback);
+    ros::Subscriber forceSetpointSub = n.subscribe("/spider/transducerarm/force_setpoint",1, forceSetpointCallback);
     
     // Send motor control signals at a 20 Hz rate
     ros::Rate loopRate(20);
