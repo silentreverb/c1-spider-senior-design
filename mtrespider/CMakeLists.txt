@@ -85,11 +85,11 @@ add_library(iir
 ## Declare a cpp executable
 add_executable(ferrosensor src/ferrosensor.cpp)
 add_executable(transducerarm src/transducerarm.cpp)
-
+add_executable(web_server src/web_server.cpp)
 ## Add cmake target dependencies of the executable/library
 add_dependencies(ferrosensor mtrespider_generate_messages_cpp)
 add_dependencies(transducerarm mtrespider_generate_messages_cpp)
-
+add_dependencies(web_server mtrespider_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(ferrosensor
@@ -100,4 +100,8 @@ target_link_libraries(transducerarm
     ${catkin_LIBRARIES}
     pid-controller
     wiringPi
+)
+
+target_link_libraries(web_server
+    ${catkin_LIBRARIES}
 )

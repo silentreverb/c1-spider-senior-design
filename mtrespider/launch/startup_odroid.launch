@@ -1,7 +1,7 @@
 <launch>
     <group ns="spider">
-		<node pkg="mtrespider" type="ferrosensor" name="ferrosensor"/>
-        <node pkg="mtrespider" type="transducerarm" name="transducerarm"/>
+        <node pkg="rosbridge_server" type="rosbridge_websocket" name="rosbridge_websocket"/>
+        <node pkg="web_video_server" type="web_video_server" name="web_video_server"/>
         <group ns="camera/front">
             <node pkg="uvc_camera" type="uvc_camera_node" name="uvc_camera_node">
                 <param name="device" type="string" value="/dev/video0"/>
@@ -9,9 +9,9 @@
                 <param name="height" type="int" value="480"/>
                 <param name="fps" type="int" value="15"/>
             </node>
-            <node pkg="image_view" type="image_view" name="image_view">
+            <!-- <node pkg="image_view" type="image_view" name="image_view">
                 <remap from="image" to="image_raw"/>
-            </node>
+            </node> -->
         </group>
         <group ns="camera/rear">
             <node pkg="uvc_camera" type="uvc_camera_node" name="uvc_camera_node">
@@ -20,9 +20,9 @@
                 <param name="height" type="int" value="480"/>
                 <param name="fps" type="int" value="15"/>
             </node>
-            <node pkg="image_view" type="image_view" name="image_view">
+            <!-- <node pkg="image_view" type="image_view" name="image_view">
                 <remap from="image" to="image_raw"/>
-            </node>
+            </node> -->
         </group>
     </group>
 </launch>

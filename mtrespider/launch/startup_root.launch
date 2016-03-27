@@ -1,0 +1,7 @@
+<launch>
+    <group ns="spider">
+		<node pkg="mtrespider" type="ferrosensor" name="ferrosensor"/>
+        <node pkg="mtrespider" type="transducerarm" name="transducerarm"/>
+        <node pkg="mtrespider" type="web_server" name="web_server"/>
+    </group>
+</launch>

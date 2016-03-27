@@ -46,6 +46,11 @@ int main(int argc, char **argv)
     ros::Subscriber positionSetpointSub = n.subscribe("position_setpoint",1, positionSetpointCallback);
     ros::Subscriber forceSetpointSub = n.subscribe("force_setpoint",1, forceSetpointCallback);
     
+    // Publishers
+    ros::Publisher currentPositionPub = n.advertise<std_msgs::Bool>("position_current", 1);
+    std_msgs::Bool currentPositionMsg;
+    currentPositionMsg.data = positionSetpoint;
+    
     // Send motor control signals at a 20 Hz rate
     ros::Rate loopRate(20);
 
@@ -65,6 +70,9 @@ int main(int argc, char **argv)
 			// TODO: Insert code to send the control signal to the motor
 			cout << "Arm DOWN, Motor ON" << endl;
 		}
+		
+		currentPositionMsg.data = positionSetpoint;
+		currentPositionPub.publish(currentPositionMsg);
 		
         // Sleep for 0.05 s
         ros::spinOnce();
