@@ -122,7 +122,10 @@
 		  }
 		  
 	  }*/
-	  
+	  $('input[id="force"]').on("change", function(){
+      setForceSetpoint(this.value);
+      });
+    
 	  function setSwitchPosition()
 	  {  
 		  // Connecting to ROS
@@ -169,6 +172,44 @@
 		  });
 	  }
 	  
+    function setForceSetpoint(force){
+		  force = parseFloat(force);
+      
+      // Connecting to ROS
+		  // -----------------
+
+		  var ros = new ROSLIB.Ros({
+			url : 'ws://192.168.10.101:9090'
+		  });
+
+		  ros.on('connection', function() {
+			console.log('Connected to websocket server.');
+		  });
+
+		  ros.on('error', function(error) {
+			console.log('Error connecting to websocket server: ', error);
+		  });
+
+		  ros.on('close', function() {
+			console.log('Connection to websocket server closed.');
+		  });
+		  
+		  // Publishing a Topic
+		  // ------------------
+
+		  var setForceFloat32 = new ROSLIB.Topic({
+			ros : ros,
+			name : '/spider/transducerarm/force_setpoint',
+			messageType : 'std_msgs/Float32'
+		  });
+
+		  var msg = new ROSLIB.Message({
+			data : force
+		  });
+      
+      setForceFloat32.publish(msg);
+		}
+    
 	  function setPositionSetpoint(bool){
 		  // Connecting to ROS
 		  // -----------------
