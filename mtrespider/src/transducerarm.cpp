@@ -20,7 +20,7 @@ using namespace std;
 // Initialize variables
 bool positionSetpoint = ARM_DOWN; // Desired transducer arm position
 float ctrlCurrent = 0; // Motor control current
-float forceSetpoint = -1; // Desired normal force acting on transducer
+float forceSetpoint = 0; // Desired normal force acting on transducer
 
 // This runs when a new position setpoint has been published on the 
 // /mtrespider/transducerarm/position_setpoint topic.
@@ -36,7 +36,22 @@ void forceSetpointCallback(const std_msgs::Float32::ConstPtr& msg) {
 
 int main(int argc, char **argv)
 {
+	// GPIO library setup function
 	wiringPiSetup();
+	
+	// Configure 3A motor driver pin
+	pinMode(21, OUTPUT); 
+	digitalWrite(21, LOW);
+	
+	// Configure 4A motor driver pin
+	pinMode(22, OUTPUT);
+	digitalWrite(22, LOW);
+	
+	// Configure 3-4 EN motor driver pin with Pulse Width Modulation (PWM)
+	pinMode(23, OUTPUT);
+	system("echo 0 > /sys/devices/platform/pwm-ctrl/duty0"); // Init to 0% duty (0 A current)
+	system("echo 50 > /sys/devices/platform/pwm-ctrl/freq0"); // 50 Hz pulse frequency
+	system("echo 1 > /sys/devices/platform/pwm-ctrl/enable0"); // Enable PWM
 	
     //ROS node init and NodeHandle init
     ros::init(argc, argv, "transducerarm");
@@ -60,17 +75,36 @@ int main(int argc, char **argv)
         if(positionSetpoint == ARM_UP) {
 			// TODO: Insert code to lift arm off surface
 			cout << "Arm UP, Motor ON" << endl;
+			
+			// 100% duty (max current)
+			system("echo 1024 > /sys/devices/platform/pwm-ctrl/duty0");
+			
+			// Spin motor CW
+			digitalWrite(21, HIGH); 
+			digitalWrite(22, LOW);
 		}
-        else if(positionSetpoint == ARM_DOWN && forceSetpoint == -1) {
-			// TODO: Insert code to turn off motor entirely
-			cout << "Arm DOWN, Motor OFF" << endl;
+        else if(positionSetpoint == ARM_DOWN && forceSetpoint == 0) {
+			// 0% duty (no current)
+			system("echo 0 > /sys/devices/platform/pwm-ctrl/duty0");
+			
+			// No motor rotation
+			digitalWrite(21, LOW);
+			digitalWrite(22, LOW);
         }
         else if(positionSetpoint == ARM_DOWN) {
 			ctrlCurrent = (MOTOR_R/MOTOR_TAU)*((SPRING_K*SPRING_THETA)/SPRING_L - forceSetpoint);
 			// TODO: Insert code to send the control signal to the motor
 			cout << "Arm DOWN, Motor ON" << endl;
+			
+			// 50% duty (50% max current)
+			system("echo 512 > /sys/devices/platform/pwm-ctrl/duty0");
+			
+			// Spin motor CW
+			digitalWrite(21, HIGH);
+			digitalWrite(22, LOW);
 		}
 		
+		// Publish current position so HMI knows what the arm is doing
 		currentPositionMsg.data = positionSetpoint;
 		currentPositionPub.publish(currentPositionMsg);
 		
@@ -79,5 +113,10 @@ int main(int argc, char **argv)
         loopRate.sleep();
     }
     
+    // Disable motor on exit to avoid damaging anything
+    system("echo 0 > /sys/devices/platform/pwm-ctrl/enable0");
+    digitalWrite(21, LOW);
+	digitalWrite(22, LOW);
+	
     return 0;
 }
