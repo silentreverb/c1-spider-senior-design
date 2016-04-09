@@ -9,10 +9,10 @@
 #define ARM_UP true // Transducer arm is lifted up 
 #define ARM_DOWN false // Transducer arm is in contact with the pipe surface
 
-#define SPRING_K 0.0013505802 // Spring constant in (kg*m)/deg
-#define SPRING_THETA 0 // Spring angular displacement in deg
+#define SPRING_K 0.0013505802 // Spring constant in (N*m)/deg
+#define SPRING_THETA 38.64 // Spring angular displacement in deg
 #define SPRING_L 0.0804672 // Moment arm length in m
-#define MOTOR_TAU 1 // Motor torque constant in kg*m
+#define MOTOR_K 4.774648 // Motor torque constant in (N*m)/A
 #define MOTOR_R 1 // Motor spool radius in m
 
 using namespace std;
@@ -49,6 +49,7 @@ int main(int argc, char **argv)
 	
 	// Configure 3-4 EN motor driver pin with Pulse Width Modulation (PWM)
 	pinMode(23, OUTPUT);
+	system("sudo modprobe pwm-meson npwm=1; sudo modprobe pwm-ctrl"); // Enable hardware PWM drivers
 	system("echo 0 > /sys/devices/platform/pwm-ctrl/duty0"); // Init to 0% duty (0 A current)
 	system("echo 50 > /sys/devices/platform/pwm-ctrl/freq0"); // 50 Hz pulse frequency
 	system("echo 1 > /sys/devices/platform/pwm-ctrl/enable0"); // Enable PWM
@@ -77,7 +78,7 @@ int main(int argc, char **argv)
 			cout << "Arm UP, Motor ON" << endl;
 			
 			// 100% duty (max current)
-			system("echo 1024 > /sys/devices/platform/pwm-ctrl/duty0");
+			system("echo 1023 > /sys/devices/platform/pwm-ctrl/duty0");
 			
 			// Spin motor CW
 			digitalWrite(21, HIGH); 
@@ -92,7 +93,7 @@ int main(int argc, char **argv)
 			digitalWrite(22, LOW);
         }
         else if(positionSetpoint == ARM_DOWN) {
-			ctrlCurrent = (MOTOR_R/MOTOR_TAU)*((SPRING_K*SPRING_THETA)/SPRING_L - forceSetpoint);
+			ctrlCurrent = (MOTOR_R/MOTOR_K)*((SPRING_K*SPRING_THETA)/SPRING_L - forceSetpoint);
 			// TODO: Insert code to send the control signal to the motor
 			cout << "Arm DOWN, Motor ON" << endl;
 			
