@@ -27,14 +27,18 @@
     </div>
   </nav>
   </head>
+
+<audio id="alarmSound">
+<source src="/alarm.wav"></source>
+</audio>
   
 	<div class="section">
 	  <div class="row container hide-on-large-only">
 		  <div id="front_camera" class="col s12">
-        <img class="responsive-img" src="http://192.168.10.101:8080/stream?topic=/spider/camera/front/image_raw">
+        <img class="responsive-img" src="http://192.168.10.101:8080/stream?topic=/spider/camera/front/image_raw&quality=50">
 		  </div>
 		  <div id="rear_camera" class="col s12">
-        <img class="responsive-img" src="http://192.168.10.101:8080/stream?topic=/spider/camera/rear/image_raw">
+        <img class="responsive-img" src="http://192.168.10.101:8080/stream?topic=/spider/camera/rear/image_raw&quality=50">
 		  </div>
 		  <div class="col s12">
         <ul class="tabs">
@@ -48,7 +52,7 @@
       <div class="col s6">
         <div class="card">
           <div class="card-image waves-effect waves-block waves-light">
-            <img class="responsive-img" src="http://192.168.10.101:8080/stream?topic=/spider/camera/front/image_raw">
+            <img class="responsive-img" src="http://192.168.10.101:8080/stream?topic=/spider/camera/front/image_raw&quality=50">
           </div>
           <div class="card-content">
             <span class="card-title grey-text text-darken-4">Front Camera</span>
@@ -58,7 +62,7 @@
       <div class="col s6">
         <div class="card">
           <div class="card-image waves-effect waves-block waves-light">
-            <img class="responsive-img" src="http://192.168.10.101:8080/stream?topic=/spider/camera/rear/image_raw">
+            <img class="responsive-img" src="http://192.168.10.101:8080/stream?topic=/spider/camera/rear/image_raw&quality=50">
           </div>
           <div class="card-content">
             <span class="card-title grey-text text-darken-4">Rear Camera</span>
@@ -122,16 +126,8 @@
 		  }
 		  
 	  }*/
-	  $('input[id="force"]').on("change", function(){
-      setForceSetpoint(this.value);
-      });
-    
-	  function setSwitchPosition()
-	  {  
-		  // Connecting to ROS
-		  // -----------------
-
-		  var ros = new ROSLIB.Ros({
+	  
+	  var ros = new ROSLIB.Ros({
 			url : 'ws://192.168.10.101:9090'
 		  });
 
@@ -146,7 +142,41 @@
 		  ros.on('close', function() {
 			console.log('Connection to websocket server closed.');
 		  });
-		  
+	  
+	  $('input[id="force"]').on("change", function(){
+      setForceSetpoint(this.value);
+      });
+    
+      var alarmListener = new ROSLIB.Topic({
+	    ros : ros,
+	    name : '/spider/ferrosensor/detected',
+	    messageType : 'std_msgs/Bool'
+	  });
+	  
+	  var alarmTrigger = true;
+	  var alarmDelay = false;
+	  var soundFx = $('#alarmSound');
+	  
+	  alarmListener.subscribe(function(msg) {
+	      if(msg.data == false && alarmTrigger == true) {
+			alarmTrigger = false;
+			alarmDelay = true;
+			soundFx[0].play();
+			var $toastContent = $('<div class="valign-wrapper"><i class="material-icons left col s2">warning</i><div class="right">Approaching non-ferromagnetic surface! Proceeding will cause the Spider to lose traction and fall!</div></div>');
+			Materialize.toast($toastContent, 10000);
+		  }
+		  else if (msg.data == true) {
+			if(alarmDelay == false) {
+			  alarmTrigger = true;
+		    }
+		    else {
+			  setTimeout(function(){alarmDelay = false}, 500);
+			}
+		  }
+	    });
+    
+	  function setSwitchPosition()
+	  {   
 		  // Subscribing to Current Position
 		  // ----------------------
 
@@ -173,26 +203,8 @@
 	  }
 	  
     function setForceSetpoint(force){
+		  soundFx[0].load();
 		  force = parseFloat(force);
-      
-      // Connecting to ROS
-		  // -----------------
-
-		  var ros = new ROSLIB.Ros({
-			url : 'ws://192.168.10.101:9090'
-		  });
-
-		  ros.on('connection', function() {
-			console.log('Connected to websocket server.');
-		  });
-
-		  ros.on('error', function(error) {
-			console.log('Error connecting to websocket server: ', error);
-		  });
-
-		  ros.on('close', function() {
-			console.log('Connection to websocket server closed.');
-		  });
 		  
 		  // Publishing a Topic
 		  // ------------------
@@ -211,24 +223,6 @@
 		}
     
 	  function setPositionSetpoint(bool){
-		  // Connecting to ROS
-		  // -----------------
-
-		  var ros = new ROSLIB.Ros({
-			url : 'ws://192.168.10.101:9090'
-		  });
-
-		  ros.on('connection', function() {
-			console.log('Connected to websocket server.');
-		  });
-
-		  ros.on('error', function(error) {
-			console.log('Error connecting to websocket server: ', error);
-		  });
-
-		  ros.on('close', function() {
-			console.log('Connection to websocket server closed.');
-		  });
 		  
 		  // Publishing a Topic
 		  // ------------------
@@ -247,27 +241,11 @@
 		}
 	  
 	  function pubCurrentPosition(swtch){
-		  // Connecting to ROS
-		  // -----------------
-
-		  var ros = new ROSLIB.Ros({
-			url : 'ws://192.168.10.101:9090'
-		  });
-
-		  ros.on('connection', function() {
-			console.log('Connected to websocket server.');
-		  });
-
-		  ros.on('error', function(error) {
-			console.log('Error connecting to websocket server: ', error);
-		  });
-
-		  ros.on('close', function() {
-			console.log('Connection to websocket server closed.');
-		  });
 		  
 		  // Subscribing to Current Position
 		  // ----------------------
+
+		  soundFx[0].load();
 
 		  var listener = new ROSLIB.Topic({
 			ros : ros,
