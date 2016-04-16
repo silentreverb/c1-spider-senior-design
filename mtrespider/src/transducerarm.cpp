@@ -49,10 +49,10 @@ int main(int argc, char **argv)
 	
 	// Configure 3-4 EN motor driver pin with Pulse Width Modulation (PWM)
 	pinMode(23, OUTPUT);
-	system("sudo modprobe pwm-meson npwm=1; sudo modprobe pwm-ctrl"); // Enable hardware PWM drivers
-	system("echo 0 > /sys/devices/platform/pwm-ctrl/duty0"); // Init to 0% duty (0 A current)
-	system("echo 50 > /sys/devices/platform/pwm-ctrl/freq0"); // 50 Hz pulse frequency
-	system("echo 1 > /sys/devices/platform/pwm-ctrl/enable0"); // Enable PWM
+	system("sudo modprobe pwm-meson npwm=2; sudo modprobe pwm-ctrl"); // Enable hardware PWM drivers
+	system("echo 0 > /sys/devices/platform/pwm-ctrl/duty1"); // Init to 0% duty (0 A current)
+	system("echo 50 > /sys/devices/platform/pwm-ctrl/freq1"); // 50 Hz pulse frequency
+	system("echo 1 > /sys/devices/platform/pwm-ctrl/enable1"); // Enable PWM
 	
     //ROS node init and NodeHandle init
     ros::init(argc, argv, "transducerarm");
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 			cout << "Arm UP, Motor ON" << endl;
 			
 			// 100% duty (max current)
-			system("echo 1023 > /sys/devices/platform/pwm-ctrl/duty0");
+			system("echo 1023 > /sys/devices/platform/pwm-ctrl/duty1");
 			
 			// Spin motor CW
 			digitalWrite(21, HIGH); 
@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 		}
         else if(positionSetpoint == ARM_DOWN && forceSetpoint == 0) {
 			// 0% duty (no current)
-			system("echo 0 > /sys/devices/platform/pwm-ctrl/duty0");
+			system("echo 0 > /sys/devices/platform/pwm-ctrl/duty1");
 			
 			// No motor rotation
 			digitalWrite(21, LOW);
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 			cout << "Arm DOWN, Motor ON" << endl;
 			
 			// 50% duty (50% max current)
-			system("echo 512 > /sys/devices/platform/pwm-ctrl/duty0");
+			system("echo 512 > /sys/devices/platform/pwm-ctrl/duty1");
 			
 			// Spin motor CW
 			digitalWrite(21, HIGH);
@@ -115,9 +115,10 @@ int main(int argc, char **argv)
     }
     
     // Disable motor on exit to avoid damaging anything
-    system("echo 0 > /sys/devices/platform/pwm-ctrl/enable0");
+    system("echo 0 > /sys/devices/platform/pwm-ctrl/enable1");
     digitalWrite(21, LOW);
 	digitalWrite(22, LOW);
+    system("sudo modprobe -r pwm-ctrl; sudo modprobe -r pwm-meson");
 	
     return 0;
 }
