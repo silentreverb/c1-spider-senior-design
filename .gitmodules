@@ -1,0 +1,23 @@
+[submodule "async_web_server_cpp"]
+path = async_web_server_cpp
+url = https://github.com/GT-RAIL/async_web_server_cpp.git
+
+[submodule "camera_umd"]
+path = camera_umd
+url = https://github.com/ktossell/camera_umd.git
+
+[submodule "robot_upstart"]
+path = robot_upstart
+url = https://github.com/clearpathrobotics/robot_upstart.git
+
+[submodule "rosauth"]
+path = rosauth
+url = https://github.com/GT-RAIL/rosauth
+
+[submodule "rosbridge_suite"]
+path = rosbridge_suite
+url = https://github.com/RobotWebTools/rosbridge_suite.git
+
+[submodule "web_video_server"]
+path = web_video_server
+url = https://github.com/RobotWebTools/web_video_server.git

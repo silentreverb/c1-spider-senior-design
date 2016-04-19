@@ -3,6 +3,7 @@
 #include "std_msgs/Bool.h"
 #include "std_msgs/Float32.h"
 #include <wiringPi.h>
+#include <softPwm.h>
 #include <iostream>
 
 // Constants
@@ -49,11 +50,13 @@ int main(int argc, char **argv)
 	
 	// Configure 3-4 EN motor driver pin with Pulse Width Modulation (PWM)
 	pinMode(23, OUTPUT);
-	system("sudo modprobe pwm-meson npwm=2; sudo modprobe pwm-ctrl"); // Enable hardware PWM drivers
-	system("echo 0 > /sys/devices/platform/pwm-ctrl/duty1"); // Init to 0% duty (0 A current)
-	system("echo 50 > /sys/devices/platform/pwm-ctrl/freq1"); // 50 Hz pulse frequency
-	system("echo 1 > /sys/devices/platform/pwm-ctrl/enable1"); // Enable PWM
+	//system("sudo modprobe pwm-meson npwm=2; sudo modprobe pwm-ctrl"); // Enable hardware PWM drivers
+	//system("echo 0 > /sys/devices/platform/pwm-ctrl/duty1"); // Init to 0% duty (0 A current)
+	//system("echo 50 > /sys/devices/platform/pwm-ctrl/freq1"); // 50 Hz pulse frequency
+	//system("echo 1 > /sys/devices/platform/pwm-ctrl/enable1"); // Enable PWM
 	
+    softPwmCreate(23, 0, 1023);
+
     //ROS node init and NodeHandle init
     ros::init(argc, argv, "transducerarm");
     ros::NodeHandle n = ros::NodeHandle("transducerarm");
@@ -78,16 +81,18 @@ int main(int argc, char **argv)
 			cout << "Arm UP, Motor ON" << endl;
 			
 			// 100% duty (max current)
-			system("echo 1023 > /sys/devices/platform/pwm-ctrl/duty1");
-			
+			//system("echo 1023 > /sys/devices/platform/pwm-ctrl/duty1");
+            softPwmWrite(23, 1023);			
+
 			// Spin motor CW
 			digitalWrite(21, HIGH); 
 			digitalWrite(22, LOW);
 		}
         else if(positionSetpoint == ARM_DOWN && forceSetpoint == 0) {
 			// 0% duty (no current)
-			system("echo 0 > /sys/devices/platform/pwm-ctrl/duty1");
-			
+			//system("echo 0 > /sys/devices/platform/pwm-ctrl/duty1");
+            softPwmWrite(23, 0);		    
+	
 			// No motor rotation
 			digitalWrite(21, LOW);
 			digitalWrite(22, LOW);
@@ -98,8 +103,9 @@ int main(int argc, char **argv)
 			cout << "Arm DOWN, Motor ON" << endl;
 			
 			// 50% duty (50% max current)
-			system("echo 512 > /sys/devices/platform/pwm-ctrl/duty1");
-			
+			//system("echo 512 > /sys/devices/platform/pwm-ctrl/duty1");
+            softPwmWrite(23, 512);		
+	
 			// Spin motor CW
 			digitalWrite(21, HIGH);
 			digitalWrite(22, LOW);
@@ -115,10 +121,11 @@ int main(int argc, char **argv)
     }
     
     // Disable motor on exit to avoid damaging anything
-    system("echo 0 > /sys/devices/platform/pwm-ctrl/enable1");
+    //system("echo 0 > /sys/devices/platform/pwm-ctrl/enable1");
     digitalWrite(21, LOW);
 	digitalWrite(22, LOW);
-    system("sudo modprobe -r pwm-ctrl; sudo modprobe -r pwm-meson");
+    digitalWrite(23, LOW);
+    //system("sudo modprobe -r pwm-ctrl; sudo modprobe -r pwm-meson");
 	
     return 0;
 }
