@@ -5,6 +5,7 @@
 #include <wiringPi.h>
 #include <softPwm.h>
 #include <iostream>
+#include <string>
 
 // Constants
 #define ARM_UP true // Transducer arm is lifted up 
@@ -22,6 +23,7 @@ using namespace std;
 bool positionSetpoint = ARM_DOWN; // Desired transducer arm position
 float ctrlCurrent = 0; // Motor control current
 float forceSetpoint = 0; // Desired normal force acting on transducer
+int lastPwmDuty = -1;
 
 // This runs when a new position setpoint has been published on the 
 // /mtrespider/transducerarm/position_setpoint topic.
@@ -33,6 +35,23 @@ void positionSetpointCallback(const std_msgs::Bool::ConstPtr& msg) {
 // /mtrespider/transducerarm/force_setpoint topic.
 void forceSetpointCallback(const std_msgs::Float32::ConstPtr& msg) {
 	forceSetpoint = msg->data; // Update variable with new force setpoint
+}
+
+void setPwmDuty(int duty) {
+    if(duty < 0) {
+        duty = 0;
+    }
+    else if(duty > 1023) {
+        duty = 1023;
+    }
+
+    if(!(duty == lastPwmDuty)) {
+        stringstream ss;
+        ss << duty;
+        string str = "echo " + ss.str() + " > /sys/devices/pwm-ctrl.42/duty0";
+        system(str.c_str());
+        lastPwmDuty = duty;
+    }
 }
 
 int main(int argc, char **argv)
@@ -49,13 +68,10 @@ int main(int argc, char **argv)
 	digitalWrite(22, LOW);
 	
 	// Configure 3-4 EN motor driver pin with Pulse Width Modulation (PWM)
-	pinMode(23, OUTPUT);
-	//system("sudo modprobe pwm-meson npwm=2; sudo modprobe pwm-ctrl"); // Enable hardware PWM drivers
-	//system("echo 0 > /sys/devices/platform/pwm-ctrl/duty1"); // Init to 0% duty (0 A current)
-	//system("echo 50 > /sys/devices/platform/pwm-ctrl/freq1"); // 50 Hz pulse frequency
-	//system("echo 1 > /sys/devices/platform/pwm-ctrl/enable1"); // Enable PWM
-	
-    softPwmCreate(23, 0, 1023);
+	system("sudo modprobe pwm-meson; sudo modprobe pwm-ctrl"); // Enable hardware PWM drivers
+	setPwmDuty(0); // Init to 0% duty (0 A current)
+	system("echo 25000 > /sys/devices/pwm-ctrl.42/freq0"); // 25 kHz pulse frequency
+	system("echo 1 > /sys/devices/pwm-ctrl.42/enable0"); // Enable PWM
 
     //ROS node init and NodeHandle init
     ros::init(argc, argv, "transducerarm");
@@ -81,8 +97,7 @@ int main(int argc, char **argv)
 			cout << "Arm UP, Motor ON" << endl;
 			
 			// 100% duty (max current)
-			//system("echo 1023 > /sys/devices/platform/pwm-ctrl/duty1");
-            softPwmWrite(23, 1023);			
+			setPwmDuty(1023);			
 
 			// Spin motor CW
 			digitalWrite(21, HIGH); 
@@ -90,8 +105,7 @@ int main(int argc, char **argv)
 		}
         else if(positionSetpoint == ARM_DOWN && forceSetpoint == 0) {
 			// 0% duty (no current)
-			//system("echo 0 > /sys/devices/platform/pwm-ctrl/duty1");
-            softPwmWrite(23, 0);		    
+			setPwmDuty(0);		    
 	
 			// No motor rotation
 			digitalWrite(21, LOW);
@@ -103,8 +117,7 @@ int main(int argc, char **argv)
 			cout << "Arm DOWN, Motor ON" << endl;
 			
 			// 50% duty (50% max current)
-			//system("echo 512 > /sys/devices/platform/pwm-ctrl/duty1");
-            softPwmWrite(23, 512);		
+            setPwmDuty(forceSetpoint*818.4);		
 	
 			// Spin motor CW
 			digitalWrite(21, HIGH);
@@ -121,11 +134,10 @@ int main(int argc, char **argv)
     }
     
     // Disable motor on exit to avoid damaging anything
-    //system("echo 0 > /sys/devices/platform/pwm-ctrl/enable1");
+    system("echo 0 > /sys/devices/pwm-ctrl.42/enable0");
     digitalWrite(21, LOW);
 	digitalWrite(22, LOW);
-    digitalWrite(23, LOW);
-    //system("sudo modprobe -r pwm-ctrl; sudo modprobe -r pwm-meson");
+    system("sudo modprobe -r pwm-ctrl; sudo modprobe -r pwm-meson");
 	
     return 0;
 }
