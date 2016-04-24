@@ -22,7 +22,8 @@ find_package(Boost REQUIRED COMPONENTS system chrono timer)
 ## Generate messages in the 'msg' folder
  add_message_files(
    FILES
- #  Message2.msg
+   ina219.msg
+   #  Message2.msg
  )
 
 ## Generate added messages and services with any dependencies listed here

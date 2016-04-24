@@ -5,7 +5,7 @@
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
 #include "ros/ros.h"
-#include <std_msgs/Float32.h>
+#include <mtrespider/ina219.h>
 
 
 using namespace std;
@@ -65,11 +65,10 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "ampsensor");
 	ros::NodeHandle n = ros::NodeHandle("ampsensor");
 	
-    ros::Publisher busVoltagePub = n.advertise<std_msgs::Float32>("bus_voltage", 1);
-    std_msgs::Float32 busVoltageMsg;
-    
-    ros::Publisher motorCurrentPub = n.advertise<std_msgs::Float32>("motor_current", 1);	
-    std_msgs::Float32 motorCurrentMsg;
+    ros::Publisher samplesPub = n.advertise<mtrespider::ina219>("samples", 1);	
+    mtrespider::ina219 samplesMsg;
+
+    samplesMsg.header.seq = 0;
 
     begin();
 	calibrate();
@@ -79,12 +78,14 @@ int main(int argc, char **argv)
 	
 	while(ros::ok())
 	{
-		busVoltageMsg.data = getBusVoltage();
-        motorCurrentMsg.data = getCurrent();
-        cout << "Voltage: " << busVoltageMsg.data << " V, Current: " << motorCurrentMsg.data << " mA" << endl;
+		samplesMsg.voltage = getBusVoltage();
+        samplesMsg.current = getCurrent();
+        samplesMsg.header.stamp = ros::Time::now();
 
-        busVoltagePub.publish(busVoltageMsg);
-        motorCurrentPub.publish(motorCurrentMsg);
+        cout << samplesMsg << endl;
+
+        samplesPub.publish(samplesMsg);
+        samplesMsg.header.seq++;        
 
 		ros::spinOnce();
 		loopRate.sleep();

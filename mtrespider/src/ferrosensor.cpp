@@ -20,7 +20,7 @@ int main(int argc, char **argv)
     ros::NodeHandle n = ros::NodeHandle("ferrosensor");
 
     // Publishers
-    ros::Publisher sensorValuePub = n.advertise<std_msgs::Int16>("fsr_reading", 1);
+    ros::Publisher sensorValuePub = n.advertise<std_msgs::Int16>("samples", 1);
     std_msgs::Int16 sensorValueMsg;
     sensorValueMsg.data = 0;
     
