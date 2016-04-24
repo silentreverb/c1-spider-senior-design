@@ -162,7 +162,7 @@
 			alarmTrigger = false;
 			alarmDelay = true;
 			soundFx[0].play();
-			var $toastContent = $('<div class="valign-wrapper"><i class="material-icons left col s2">warning</i><div class="right">Approaching non-ferromagnetic surface! Proceeding will cause the Spider to lose traction and fall!</div></div>');
+			var $toastContent = $('<div class="red darken-3 valign-wrapper"><i class="material-icons left col s2">warning</i><div class="right">Approaching non-ferromagnetic surface! Proceeding will cause the Spider to lose traction and fall!</div></div>');
 			Materialize.toast($toastContent, 10000);
 		  }
 		  else if (msg.data == true) {
