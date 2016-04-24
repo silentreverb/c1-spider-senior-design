@@ -6,7 +6,7 @@
 #include <iostream>
 
 // Constants
-#define SENSOR_THRESH 512 // Force threshold indicating a ferromagnetic surface is present
+#define SENSOR_THRESH 15 // Force threshold indicating a ferromagnetic surface is present
 
 using namespace std;
 
