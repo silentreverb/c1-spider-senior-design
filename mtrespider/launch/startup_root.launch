@@ -1,7 +1,9 @@
 <launch>
     <group ns="spider">
 		<node pkg="mtrespider" type="ferrosensor" name="ferrosensor"/>
-        <node pkg="mtrespider" type="transducerarm" name="transducerarm"/>
+        <node pkg="mtrespider" type="transducerarm" name="transducerarm">
+        <remap from="transducerarm/samples" to="/spider/ampsensor/samples"/>
+        </node>
         <node pkg="mtrespider" type="ampsensor" name="ampsensor"/>
         <node pkg="mtrespider" type="web_server" name="web_server"/>
     </group>

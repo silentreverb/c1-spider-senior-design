@@ -70,6 +70,8 @@ int main(int argc, char **argv)
 
     samplesMsg.header.seq = 0;
 
+    system("sudo modprobe aml-i2c");
+    
     begin();
 	calibrate();
 	configure();
@@ -90,6 +92,8 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loopRate.sleep();
 	}
+
+    system("sudo modprobe -r aml-i2c");
 	
 	return 0;
 }

@@ -88,11 +88,13 @@ add_executable(ferrosensor src/ferrosensor.cpp)
 add_executable(transducerarm src/transducerarm.cpp)
 add_executable(ampsensor src/ampsensor.cpp)
 add_executable(web_server src/web_server.cpp)
+add_executable(motor_cal src/motor_cal.cpp)
 ## Add cmake target dependencies of the executable/library
 add_dependencies(ferrosensor mtrespider_generate_messages_cpp)
 add_dependencies(transducerarm mtrespider_generate_messages_cpp)
 add_dependencies(ampsensor mtrespider_generate_messages_cpp)
 add_dependencies(web_server mtrespider_generate_messages_cpp)
+add_dependencies(motor_cal mtrespider_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(ferrosensor
@@ -111,4 +113,9 @@ target_link_libraries(ampsensor
 
 target_link_libraries(web_server
     ${catkin_LIBRARIES}
+)
+
+target_link_libraries(motor_cal
+    ${catkin_LIBRARIES}
+    wiringPi
 )
