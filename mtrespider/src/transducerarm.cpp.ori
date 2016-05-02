@@ -6,15 +6,17 @@
 #include <wiringPi.h>
 #include <iostream>
 #include <string>
+#include <PIDController.h>
 
 // Constants
 #define ARM_UP true // Transducer arm is lifted up 
 #define ARM_DOWN false // Transducer arm is in contact with the pipe surface
 
+#define SPRING_K 1.32446467 // Spring constant in (N*cm)/deg
+#define SPRING_THETA 38.64 // Spring angular displacement in deg
 #define SPRING_L 8.04672 // Moment arm length in cm
-#define SPOOL_R 0.635 // Motor spool radius in cm
-#define MOTOR_V 2.187792662
-#define MOTOR_V_CW 2.097123942
+#define MOTOR_K 0.477464829821 // Motor torque constant in (N*cm)/mA
+#define MOTOR_R 0.635 // Motor spool radius in cm
 
 using namespace std;
 
@@ -22,61 +24,56 @@ using namespace std;
 bool positionSetpoint = ARM_DOWN; // Desired transducer arm position
 float forceSetpoint = 1.25; // Desired normal force acting on transducer
 int lastPwmDuty = -1;
-int dir = 0;
 float busVoltage = 12;
 float motorCurrent = 0;
-double currentPos = 0;
-double targetPos = 0;
-ros::WallTime lastTime;
-ros::WallTimer timer;
+PIDController* tauCtrlGnd = new PIDController(25,10,0,-511,512);
+PIDController* tauCtrlAir = new PIDController(25,10,0,-511,512);
 
-void setPwmDuty(int duty);
-
-void calcOnTime() {
-    double deltaPos = targetPos - currentPos;
-    if(deltaPos > 0) {
-        timer.stop();
-        dir = 1;
+void setControlSystem() {
+    if(positionSetpoint == ARM_UP) {
+        // Spin motor CW
         digitalWrite(21, HIGH);
         digitalWrite(22, LOW);
-        setPwmDuty(1023);
-        timer.setPeriod(ros::WallDuration(deltaPos/MOTOR_V));
-        timer.start();       
+
+        tauCtrlGnd->off();
+        tauCtrlAir->on();
+        
+        double tau_desired = (SPRING_K*MOTOR_R*60)/SPRING_L;
+        tauCtrlAir->targetSetpoint(tau_desired);
     }
-    else if(deltaPos < 0) {
-        timer.stop();
-        dir = -1;
+    else if(positionSetpoint == ARM_DOWN && forceSetpoint == 1.25) {
+        // No motor rotation
         digitalWrite(21, LOW);
-        digitalWrite(22, HIGH);
-        deltaPos = -1*deltaPos;
-        setPwmDuty(1023);
-        timer.setPeriod(ros::WallDuration(deltaPos/MOTOR_V_CW));
-        timer.start();
+        digitalWrite(22, LOW);
+
+        tauCtrlGnd->off();
+        tauCtrlAir->off();
     }
+    else if(positionSetpoint == ARM_DOWN) {
+        // Spin motor CW
+        digitalWrite(21, HIGH);
+        digitalWrite(22, LOW);
+
+        tauCtrlAir->off();
+        tauCtrlGnd->on();
+
+        double tau_desired = MOTOR_R*((SPRING_K*SPRING_THETA)/SPRING_L);
+        tauCtrlGnd->targetSetpoint(tau_desired);
+    }   
 }
 
 // This runs when a new position setpoint has been published on the 
 // /mtrespider/transducerarm/position_setpoint topic.
 void positionSetpointCallback(const std_msgs::Bool::ConstPtr& msg) {
 	positionSetpoint = msg->data; // Update variable with new desired position
-    
-    if(positionSetpoint == ARM_UP) {
-        targetPos = 2.5;
-    }
-    else if(positionSetpoint == ARM_DOWN) {
-        targetPos = 0;
-    }
-    calcOnTime();
+    setControlSystem();
 }
 
 // This runs when a new force setpoint has been published on the 
 // /mtrespider/transducerarm/force_setpoint topic.
 void forceSetpointCallback(const std_msgs::Float32::ConstPtr& msg) {
 	forceSetpoint = msg->data; // Update variable with new force setpoint
-    if(positionSetpoint == ARM_DOWN) {
-        targetPos = 0;
-        calcOnTime();
-    }   
+    setControlSystem();
 }
 
 void setPwmDuty(int duty) {
@@ -96,30 +93,24 @@ void setPwmDuty(int duty) {
     }
 }
 
-/*void ina219Callback(const mtrespider::ina219::ConstPtr& msg) {
+void ina219Callback(const mtrespider::ina219::ConstPtr& msg) {
     busVoltage = msg->voltage;
     motorCurrent = msg->current;
-}
-*/
 
-void updatePosEst() {
-    if(dir == 1 && lastPwmDuty == 1023) {
-        currentPos = currentPos + MOTOR_V*(ros::WallTime::now().toSec() - lastTime    .toSec());
+    double tau_actual = MOTOR_K*motorCurrent;
+    cout << "Desired tau: " << tauCtrlAir->getSetpoint() << ", Actual tau: " << tau_actual << endl;
+
+    if(positionSetpoint == ARM_UP) {
+        int corr = tauCtrlAir->calc(tau_actual) + 511;
+        cout << "Corr: " << corr << endl;
+        setPwmDuty(corr);
     }
-    else if(dir == -1 && lastPwmDuty == 1023) {
-        currentPos = currentPos - MOTOR_V_CW*(ros::WallTime::now().toSec() - lastTime    .toSec());
+    else if(positionSetpoint == ARM_DOWN && forceSetpoint != 1.25) {
+        int corr = tauCtrlGnd->calc(tau_actual) + 511;
+        cout << "Corr: " << corr << endl;
+        setPwmDuty(corr);
     }
-    lastTime = ros::WallTime::now();
 }
-
-void timerCallback(const ros::WallTimerEvent& event) {
-    updatePosEst(); 
-
-    dir = 0;
-    digitalWrite(21, HIGH);
-    digitalWrite(22, HIGH);
-    setPwmDuty(1023);
-}   
 
 int main(int argc, char **argv)
 {
@@ -137,7 +128,7 @@ int main(int argc, char **argv)
 	// Configure 3-4 EN motor driver pin with Pulse Width Modulation (PWM)
 	system("sudo modprobe pwm-meson; sudo modprobe pwm-ctrl"); // Enable hardware PWM drivers
 	setPwmDuty(0); // Init to 0% duty (0 A current)
-	system("echo 1023 > /sys/devices/pwm-ctrl.42/freq0"); // 25 kHz pulse frequency
+	system("echo 1000 > /sys/devices/pwm-ctrl.42/freq0"); // 25 kHz pulse frequency
 	system("echo 1 > /sys/devices/pwm-ctrl.42/enable0"); // Enable PWM
 
     //ROS node init and NodeHandle init
@@ -147,7 +138,7 @@ int main(int argc, char **argv)
     // Subscribers
     ros::Subscriber positionSetpointSub = n.subscribe("position_setpoint",1, positionSetpointCallback);
     ros::Subscriber forceSetpointSub = n.subscribe("force_setpoint",1, forceSetpointCallback);
-    //ros::Subscriber ina219Sub = n.subscribe("samples",1, ina219Callback);    
+    ros::Subscriber ina219Sub = n.subscribe("samples",1, ina219Callback);    
 
     // Publishers
     ros::Publisher currentPositionPub = n.advertise<std_msgs::Bool>("position_current", 1);
@@ -155,21 +146,12 @@ int main(int argc, char **argv)
     currentPositionMsg.data = positionSetpoint;
     
     // Send motor control signals at a 20 Hz rate
-    timer = n.createWallTimer(ros::WallDuration(1), timerCallback, true);
-    timer.stop();
-    lastTime = ros::WallTime::now();
-
-    ros::Rate loopRate(1000);
+    ros::Rate loopRate(20);
 
 	// Main loop
     while(ros::ok())
-    {	               
-        updatePosEst();
-        
-        cout << "Current Position: " << currentPos << " cm" << endl;
-        cout << "Target Position: " << targetPos << " cm" << endl << endl;
-
-        // Publish current position so HMI knows what the arm is doing
+    {	
+		// Publish current position so HMI knows what the arm is doing
 		currentPositionMsg.data = positionSetpoint;
 		currentPositionPub.publish(currentPositionMsg);
 		

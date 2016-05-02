@@ -84,36 +84,42 @@ int main(int argc, char **argv)
 	system("echo 1 > /sys/devices/pwm-ctrl.42/enable0"); // Enable PWM
 
     //ROS node init and NodeHandle init
-    ros::init(argc, argv, "motor_cal");
-    ros::NodeHandle n = ros::NodeHandle("motor_cal");
+    ros::init(argc, argv, "tension_adjust");
+    ros::NodeHandle n = ros::NodeHandle("tension_adjust");
 
     setPwmDuty(1023);
     cout << "Please enter PWM duty: ";
     int duty;
     cin >> duty;
+
+    cout << "Please enter direction: ";
+    int dir;
+    cin >> dir;
+
     cout << "Press any key to start..." << endl;
     cin.clear();
     cin.ignore( numeric_limits <streamsize> ::max(), '\n' );
-    digitalWrite(21, HIGH);
-    digitalWrite(22, LOW);
+
+    if(dir == 1) {
+        digitalWrite(21, HIGH);
+        digitalWrite(22, LOW);
+    }
+    else {
+        digitalWrite(21, LOW);
+        digitalWrite(22, HIGH);
+    }
     setPwmDuty(duty);
+
     ros::WallTime start = ros::WallTime::now();
     ros::WallTime finish;
 
     cin.clear();
     cin.ignore( numeric_limits <streamsize> ::max(), '\n' );
 
-    finish = ros::WallTime::now();
     digitalWrite(21, HIGH);
     digitalWrite(22, HIGH);
     setPwmDuty(1023);
-    cout << "Please enter the number of revolutions: ";
-    float revs;
-    cin >> revs;
-    double rpm = 60*revs / (finish.toSec() - start.toSec());
-    cout << "Motor RPM: " << rpm << endl << flush;
-    cin.ignore( numeric_limits <streamsize> ::max(), '\n' );
-    
+        
     // Disable motor on exit to avoid damaging anything
     system("echo 0 > /sys/devices/pwm-ctrl.42/enable0");
     digitalWrite(21, LOW);

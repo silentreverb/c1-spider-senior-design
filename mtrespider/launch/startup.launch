@@ -1,5 +1,11 @@
 <launch>
     <group ns="spider">
+        <node pkg="mtrespider" type="ferrosensor" name="ferrosensor"/>
+        <node pkg="mtrespider" type="transducerarm" name="transducerarm">
+            <remap from="transducerarm/samples" to="/spider/ampsensor/samples"/>
+        </node>
+        <node pkg="mtrespider" type="ampsensor" name="ampsensor"/>
+        <node pkg="mtrespider" type="web_server" name="web_server"/>
         <node pkg="rosbridge_server" type="rosbridge_websocket" name="rosbridge_websocket"/>
         <node pkg="web_video_server" type="web_video_server" name="web_video_server"/>
         <group ns="camera/front">
